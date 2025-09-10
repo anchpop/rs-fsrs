@@ -47,6 +47,10 @@ impl BasicScheduler {
                 next.state = Review;
             }
         };
+
+        // Update common metrics for new cards (retrievability is 0 for new cards)
+        next.update_metrics(rating, 0.0, &self.scheduler.current);
+
         let item = SchedulingInfo {
             card: next,
             review_log: self.scheduler.build_log(rating),
@@ -111,6 +115,11 @@ impl BasicScheduler {
                 next.state = Review;
             }
         }
+
+        // Update common metrics for learning/relearning cards
+        let retrievability = self.scheduler.last.get_retrievability(self.scheduler.now);
+        next.update_metrics(rating, retrievability, &self.scheduler.current);
+
         let item = SchedulingInfo {
             card: next,
             review_log: self.scheduler.build_log(rating),
@@ -158,7 +167,12 @@ impl BasicScheduler {
             &mut next_good,
             &mut next_easy,
         );
-        next_again.lapses += 1;
+
+        // Update common metrics (lapses and surprise) for all rating options
+        next_again.update_metrics(Rating::Again, retrievability, &self.scheduler.current);
+        next_hard.update_metrics(Rating::Hard, retrievability, &self.scheduler.current);
+        next_good.update_metrics(Rating::Good, retrievability, &self.scheduler.current);
+        next_easy.update_metrics(Rating::Easy, retrievability, &self.scheduler.current);
 
         let item_again = SchedulingInfo {
             card: next_again,

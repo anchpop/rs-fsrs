@@ -47,6 +47,13 @@ impl LongtermScheduler {
             &mut next_good,
             &mut next_easy,
         );
+
+        // Update common metrics for new cards (retrievability is 0 for new cards)
+        next_again.update_metrics(Rating::Again, 0.0, &self.scheduler.current);
+        next_hard.update_metrics(Rating::Hard, 0.0, &self.scheduler.current);
+        next_good.update_metrics(Rating::Good, 0.0, &self.scheduler.current);
+        next_easy.update_metrics(Rating::Easy, 0.0, &self.scheduler.current);
+
         self.update_next(&next_again, &next_hard, &next_good, &next_easy);
 
         self.scheduler.next.get(&rating).unwrap().to_owned()
@@ -94,7 +101,12 @@ impl LongtermScheduler {
             &mut next_good,
             &mut next_easy,
         );
-        next_again.lapses += 1;
+
+        // Update common metrics (lapses and surprise) for all rating options
+        next_again.update_metrics(Rating::Again, retrievability, &self.scheduler.current);
+        next_hard.update_metrics(Rating::Hard, retrievability, &self.scheduler.current);
+        next_good.update_metrics(Rating::Good, retrievability, &self.scheduler.current);
+        next_easy.update_metrics(Rating::Easy, retrievability, &self.scheduler.current);
 
         self.update_next(&next_again, &next_hard, &next_good, &next_easy);
         self.scheduler.next.get(&rating).unwrap().to_owned()
