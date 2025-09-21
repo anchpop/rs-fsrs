@@ -60,15 +60,17 @@ pub struct Card {
     pub lapses: i32,
     pub state: State,
     pub last_review: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
     pub accumulated_positive_surprise: f64,
     pub accumulated_negative_surprise: f64,
 }
 
 impl Card {
-    pub fn new() -> Self {
+    pub fn new(created_at: DateTime<Utc>) -> Self {
         Self {
-            due: Utc::now(),
-            last_review: Utc::now(),
+            due: created_at,
+            last_review: created_at,
+            created_at,
             accumulated_positive_surprise: 0.0,
             accumulated_negative_surprise: 0.0,
             ..Default::default()

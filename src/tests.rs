@@ -53,8 +53,8 @@ impl RoundFloat for f64 {
 #[test]
 fn test_basic_scheduler_interval() {
     let fsrs = FSRS::default();
-    let mut card = Card::new();
     let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut card = Card::new(now);
     let mut interval_history = vec![];
 
     for rating in TEST_RATINGS.iter() {
@@ -75,8 +75,8 @@ fn test_basic_scheduler_state() {
     };
 
     let fsrs = FSRS::new(params);
-    let mut card = Card::new();
     let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut card = Card::new(now);
     let mut state_list = vec![];
     let mut record_log = fsrs.repeat(card, now);
 
@@ -103,8 +103,8 @@ fn test_basic_scheduler_memo_state() {
     };
 
     let fsrs = FSRS::new(params);
-    let mut card = Card::new();
     let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut card = Card::new(now);
     let mut record_log = fsrs.repeat(card.clone(), now);
     let ratings = [
         Rating::Again,
@@ -135,8 +135,8 @@ fn test_long_term_scheduler() {
     };
 
     let fsrs = FSRS::new(params);
-    let mut card = Card::new();
     let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut card = Card::new(now);
     let mut interval_history = vec![];
     let mut stability_history = vec![];
     let mut difficulty_history = vec![];
@@ -277,9 +277,9 @@ fn test_seed_example_3() {
 #[test]
 fn test_get_retrievability() {
     let fsrs = FSRS::default();
-    let card = Card::new();
     let now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
-    let expect_retrievability = [1.0, 1.0, 1.0, 0.9026208];
+    let card = Card::new(now);
+    let expect_retrievability = [0.9998, 0.9996559, 0.9997396, 0.9026208];
     let scheduler = fsrs.repeat(card, now);
 
     for (i, rating) in Rating::iter().enumerate() {

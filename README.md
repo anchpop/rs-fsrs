@@ -19,7 +19,7 @@ use rs_fsrs::{FSRS, Card, Rating};
 
 fn main() {
     let fsrs = FSRS::default();
-    let card = Card::new();
+    let card = Card::new(Utc::now());
 
     let record_log = fsrs.repeat(card, Utc::now());
     for rating in Rating::iter() {
