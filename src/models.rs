@@ -63,6 +63,9 @@ pub struct Card {
     pub created_at: DateTime<Utc>,
     pub accumulated_positive_surprise: f64,
     pub accumulated_negative_surprise: f64,
+    /// Lapses that occurred in the first 5 reviews. Brain farts on later
+    /// reviews don't count — they're noise, not signal about pre-existing knowledge.
+    pub early_lapses: i32,
 }
 
 impl Card {
@@ -99,8 +102,16 @@ impl Card {
         // Update lapses for failed reviews
         if rating == Rating::Again {
             self.lapses = current_card.lapses + 1;
+            // Only count lapses in the first 5 reviews as signal about
+            // pre-existing knowledge. Later lapses are brain farts.
+            if current_card.reps < 3 {
+                self.early_lapses = current_card.early_lapses + 1;
+            } else {
+                self.early_lapses = current_card.early_lapses;
+            }
         } else {
             self.lapses = current_card.lapses;
+            self.early_lapses = current_card.early_lapses;
         }
 
         // Calculate probability of the observed outcome
