@@ -80,14 +80,14 @@ impl Card {
         }
     }
 
-    pub fn get_retrievability(&self, now: DateTime<Utc>) -> f64 {
+    pub fn get_retrievability(&self, now: DateTime<Utc>, parameters: &Parameters) -> f64 {
         match self.state {
             State::New => 0.0,
             _ => {
                 let elapsed_days = now
                     .signed_duration_since(self.last_review)
                     .num_fractional_days();
-                Parameters::forgetting_curve(elapsed_days, self.stability)
+                parameters.forgetting_curve(elapsed_days, self.stability)
             }
         }
     }

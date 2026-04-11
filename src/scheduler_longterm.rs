@@ -72,7 +72,10 @@ impl LongtermScheduler {
         let interval = self.scheduler.current.elapsed_days;
         let stability = self.scheduler.last.stability;
         let difficulty = self.scheduler.last.difficulty;
-        let retrievability = self.scheduler.last.get_retrievability(self.scheduler.now);
+        let retrievability = self
+            .scheduler
+            .last
+            .get_retrievability(self.scheduler.now, &self.scheduler.parameters);
 
         let mut next_again = next.clone();
         let mut next_hard = next.clone();

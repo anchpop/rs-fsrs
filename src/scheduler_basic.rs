@@ -67,14 +67,42 @@ impl BasicScheduler {
 
         let mut next = self.scheduler.current.clone();
         let interval = self.scheduler.current.elapsed_days;
+        let last_stability = self.scheduler.last.stability;
+        let last_difficulty = self.scheduler.last.difficulty;
+        let retrievability = self
+            .scheduler
+            .last
+            .get_retrievability(self.scheduler.now, &self.scheduler.parameters);
+
         next.difficulty = self
             .scheduler
             .parameters
-            .next_difficulty(self.scheduler.last.difficulty, rating);
-        next.stability = self
-            .scheduler
-            .parameters
-            .short_term_stability(self.scheduler.last.stability, rating);
+            .next_difficulty(last_difficulty, rating);
+
+        // FSRS-6 gate: when at least one day has elapsed since the last review,
+        // use the proper retrievability-aware update. Same-day reviews still use
+        // the short-term update so in-batch drilling produces meaningful changes
+        // (the forgetting curve has barely moved over seconds, so a "Good" via
+        // the long-term path would change stability by ~0).
+        next.stability = if interval > 0 {
+            match rating {
+                Again => self.scheduler.parameters.next_forget_stability(
+                    last_difficulty,
+                    last_stability,
+                    retrievability,
+                ),
+                _ => self.scheduler.parameters.next_recall_stability(
+                    last_difficulty,
+                    last_stability,
+                    retrievability,
+                    rating,
+                ),
+            }
+        } else {
+            self.scheduler
+                .parameters
+                .short_term_stability(last_stability, rating)
+        };
 
         match rating {
             Again => {
@@ -97,10 +125,20 @@ impl BasicScheduler {
                 next.state = Review;
             }
             Easy => {
-                let good_stability = self
-                    .scheduler
-                    .parameters
-                    .short_term_stability(self.scheduler.last.stability, Good);
+                // Compute a "good_stability" comparable to next.stability so the
+                // Easy interval is strictly longer than the Good interval.
+                let good_stability = if interval > 0 {
+                    self.scheduler.parameters.next_recall_stability(
+                        last_difficulty,
+                        last_stability,
+                        retrievability,
+                        Good,
+                    )
+                } else {
+                    self.scheduler
+                        .parameters
+                        .short_term_stability(last_stability, Good)
+                };
                 let good_interval = self
                     .scheduler
                     .parameters
@@ -117,7 +155,6 @@ impl BasicScheduler {
         }
 
         // Update common metrics for learning/relearning cards
-        let retrievability = self.scheduler.last.get_retrievability(self.scheduler.now);
         next.update_metrics(rating, retrievability, &self.scheduler.current);
 
         let item = SchedulingInfo {
@@ -138,7 +175,10 @@ impl BasicScheduler {
         let interval = self.scheduler.current.elapsed_days;
         let stability = self.scheduler.last.stability;
         let difficulty = self.scheduler.last.difficulty;
-        let retrievability = self.scheduler.last.get_retrievability(self.scheduler.now);
+        let retrievability = self
+            .scheduler
+            .last
+            .get_retrievability(self.scheduler.now, &self.scheduler.parameters);
 
         let mut next_again = next.clone();
         let mut next_hard = next.clone();
