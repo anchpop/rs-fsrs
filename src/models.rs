@@ -1,4 +1,4 @@
-use crate::Parameters;
+use crate::{FractionalDays, Parameters};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -84,8 +84,9 @@ impl Card {
         match self.state {
             State::New => 0.0,
             _ => {
-                let elapsed_seconds = now.signed_duration_since(self.last_review).num_seconds();
-                let elapsed_days = elapsed_seconds as f64 / 86400.0;  // Convert seconds to days as float
+                let elapsed_days = now
+                    .signed_duration_since(self.last_review)
+                    .num_fractional_days();
                 Parameters::forgetting_curve(elapsed_days, self.stability)
             }
         }
