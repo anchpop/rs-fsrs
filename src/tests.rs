@@ -129,7 +129,7 @@ fn test_basic_scheduler_memo_state() {
     }
 
     card = record_log[&Rating::Good].to_owned().card;
-    assert_eq!(card.stability.round_float(4), 71.4554);
+    assert_eq!(card.stability.round_float(4), 71.5608);
     assert_eq!(card.difficulty.round_float(4), 5.0976);
 }
 
@@ -177,6 +177,79 @@ fn test_long_term_scheduler() {
     assert_eq!(interval_history, expected_interval);
     assert_eq!(stability_history, expected_stability);
     assert_eq!(difficulty_history, expected_difficulty);
+}
+
+#[test]
+fn test_basic_scheduler_same_day_review_uses_short_term_stability() {
+    let params = Parameters::default();
+    let fsrs = FSRS::new(params.clone());
+    let now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let review_card = Card {
+        due: now,
+        stability: 10.0,
+        difficulty: 5.0,
+        elapsed_days: 10,
+        scheduled_days: 10,
+        reps: 5,
+        lapses: 0,
+        state: State::Review,
+        last_review: now,
+        created_at: now - Duration::days(30),
+        accumulated_positive_surprise: 0.0,
+        accumulated_negative_surprise: 0.0,
+        early_lapses: 0,
+    };
+
+    let log = fsrs.repeat(review_card, now);
+
+    assert_eq!(
+        log[&Rating::Again].card.stability.round_float(6),
+        params.short_term_stability(10.0, Rating::Again).round_float(6),
+    );
+    assert_eq!(
+        log[&Rating::Easy].card.stability.round_float(6),
+        params.short_term_stability(10.0, Rating::Easy).round_float(6),
+    );
+}
+
+#[test]
+fn test_longterm_scheduler_same_day_review_uses_short_term_stability() {
+    let params = Parameters {
+        enable_short_term: false,
+        ..Default::default()
+    };
+    let fsrs = FSRS::new(params.clone());
+    let now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let review_card = Card {
+        due: now,
+        stability: 10.0,
+        difficulty: 5.0,
+        elapsed_days: 10,
+        scheduled_days: 10,
+        reps: 5,
+        lapses: 0,
+        state: State::Review,
+        last_review: now,
+        created_at: now - Duration::days(30),
+        accumulated_positive_surprise: 0.0,
+        accumulated_negative_surprise: 0.0,
+        early_lapses: 0,
+    };
+
+    let log = fsrs.repeat(review_card, now);
+
+    assert_eq!(
+        log[&Rating::Again].card.stability.round_float(6),
+        params.short_term_stability(10.0, Rating::Again).round_float(6),
+    );
+    assert_eq!(
+        log[&Rating::Easy].card.stability.round_float(6),
+        params.short_term_stability(10.0, Rating::Easy).round_float(6),
+    );
+    assert_eq!(log[&Rating::Again].card.scheduled_days, 3);
+    assert_eq!(log[&Rating::Hard].card.scheduled_days, 10);
+    assert_eq!(log[&Rating::Good].card.scheduled_days, 11);
+    assert_eq!(log[&Rating::Easy].card.scheduled_days, 16);
 }
 
 #[test]
@@ -466,7 +539,7 @@ fn test_get_retrievability() {
     let card = Card::new(now);
     // FSRS-6 retrievability: differs from FSRS-5 because the default decay is now
     // w[20] = 0.1542 (vs the FSRS-5 hardcoded -0.5).
-    let expect_retrievability = [0.9995057, 0.9995947, 0.9995456, 0.9024733];
+    let expect_retrievability = [0.9995057, 0.9997567, 0.9997272, 0.9024733];
     let scheduler = fsrs.repeat(card, now);
 
     let actual: Vec<f64> = Rating::iter()

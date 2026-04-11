@@ -87,6 +87,7 @@ impl LongtermScheduler {
             &mut next_hard,
             &mut next_good,
             &mut next_easy,
+            interval,
             difficulty,
             stability,
             retrievability,
@@ -142,39 +143,63 @@ impl LongtermScheduler {
         next_hard: &mut Card,
         next_good: &mut Card,
         next_easy: &mut Card,
+        elapsed_days: i64,
         difficulty: f64,
         stability: f64,
         retrievability: f64,
     ) {
         next_again.difficulty = self.scheduler.parameters.next_difficulty(difficulty, Again);
-        next_again.stability =
+        next_again.stability = if elapsed_days > 0 {
             self.scheduler
                 .parameters
-                .next_forget_stability(difficulty, stability, retrievability);
+                .next_forget_stability(difficulty, stability, retrievability)
+        } else {
+            self.scheduler
+                .parameters
+                .short_term_stability(stability, Again)
+        };
 
         next_hard.difficulty = self.scheduler.parameters.next_difficulty(difficulty, Hard);
-        next_hard.stability = self.scheduler.parameters.next_recall_stability(
-            difficulty,
-            stability,
-            retrievability,
-            Hard,
-        );
+        next_hard.stability = if elapsed_days > 0 {
+            self.scheduler.parameters.next_recall_stability(
+                difficulty,
+                stability,
+                retrievability,
+                Hard,
+            )
+        } else {
+            self.scheduler
+                .parameters
+                .short_term_stability(stability, Hard)
+        };
 
         next_good.difficulty = self.scheduler.parameters.next_difficulty(difficulty, Good);
-        next_good.stability = self.scheduler.parameters.next_recall_stability(
-            difficulty,
-            stability,
-            retrievability,
-            Good,
-        );
+        next_good.stability = if elapsed_days > 0 {
+            self.scheduler.parameters.next_recall_stability(
+                difficulty,
+                stability,
+                retrievability,
+                Good,
+            )
+        } else {
+            self.scheduler
+                .parameters
+                .short_term_stability(stability, Good)
+        };
 
         next_easy.difficulty = self.scheduler.parameters.next_difficulty(difficulty, Easy);
-        next_easy.stability = self.scheduler.parameters.next_recall_stability(
-            difficulty,
-            stability,
-            retrievability,
-            Easy,
-        );
+        next_easy.stability = if elapsed_days > 0 {
+            self.scheduler.parameters.next_recall_stability(
+                difficulty,
+                stability,
+                retrievability,
+                Easy,
+            )
+        } else {
+            self.scheduler
+                .parameters
+                .short_term_stability(stability, Easy)
+        };
     }
 
     fn next_interval(
